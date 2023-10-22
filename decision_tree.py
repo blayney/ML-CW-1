@@ -2,7 +2,10 @@ import numpy as np
 import matplotlib as mt
 
 node_dictionary = {
-    "head" : ["attribute", "value", "l_branch", "r_branch"]
+    "leaf0" : ["leaf", 0, None, None],
+    "leaf1" : ["leaf", 1, None, None],
+    "leaf2" : ["leaf", 2, None, None],
+    "leaf3" : ["leaf", 3, None, None]
 }
 
 # Load our clean dataset
@@ -25,9 +28,7 @@ print(node_dictionary)
 
 def find_split():
     return
-
-unique_leaf_id = 0
-
+    
 def decision_tree_learning(training_dataset, depth):
     flag = False
     value = training_dataset[0][len(training_dataset[0]) - 1]
@@ -35,8 +36,7 @@ def decision_tree_learning(training_dataset, depth):
         if item[len(item) - 1] != value:
             flag = True
     if flag == True:
-        tmp = "leaf: " + unique_leaf_id
-        unique_leaf_id += 1
+        tmp = "leaf" + depth
         return {tmp : ["leaf", depth, None, None]}, depth
     else:
         split, attributeSplit, l_dataset, r_dataset = find_split(training_dataset)
@@ -46,10 +46,15 @@ def decision_tree_learning(training_dataset, depth):
         tmpKey = tmpTree[newVal]
         tmpKey[2] = next(iter(l_branch))
         tmpTree[newVal] = tmpKey
-        tmpTree.update(l_branch)
+        if("leaf" not in next(iter(l_branch))):
+           tmpTree.update(l_branch)
         r_branch, r_depth = decision_tree_learning(r_dataset, depth + 1)
         tmpKey = tmpTree[newVal]
         tmpKey[3] = next(iter(r_branch))
         tmpTree[newVal] = tmpKey
-        tmpTree.update(r_branch)
+        if("leaf" not in next(iter(r_branch))):
+           tmpTree.update(r_branch)
         return tmpTree, max(l_depth, r_depth)
+
+tmp_dictionary, _ = decision_tree_learning(clean_data, 0)
+node_dictionary.update(tmp_dictionary)
