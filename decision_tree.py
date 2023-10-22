@@ -36,7 +36,7 @@ def decision_tree_learning(training_dataset, depth):
         if item[len(item) - 1] != value:
             flag = True
     if flag == True:
-        tmp = "leaf" + depth
+        tmp = "leaf" + str(depth)
         return {tmp : ["leaf", depth, None, None]}, depth
     else:
         split, attributeSplit, l_dataset, r_dataset = find_split(training_dataset)
