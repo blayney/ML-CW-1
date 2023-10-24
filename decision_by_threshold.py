@@ -62,7 +62,6 @@ def get_threshold_value(dataset, max_IG_col):
         prev_value = value
 
     return best_threshold, max_IG_for_value
-
 def get_labelled_col(dataset, column):
     strengths_set = np.array([])
     strengths_labels = np.array([])
@@ -111,7 +110,7 @@ def find_split(dataset):
                 if split_IG > best_IG:
                     best_IG = split_IG
                     best_emitter = col_n
-                    print("setting threshold to the mean of ", current_row, " and ", next_row)
+                    #print("setting threshold to the mean of ", current_row, " and ", next_row)
                     best_threshold = (current_row[0] + next_row[0]) / 2
                     if current_row[0] == next_row[0]:
                         equal_either_side_flag = True
@@ -142,6 +141,7 @@ def find_split(dataset):
     #print("Best threshold:", best_threshold)
 
     return best_threshold, best_emitter, l, r
+
 
 def decision_tree_learning(training_dataset, depth):
     if len(np.unique(training_dataset[:, -1])) == 1:
@@ -190,7 +190,29 @@ tmp_dictionary, _ = decision_tree_learning(dataset, 0)
 node_dictionary = {}
 node_dictionary.update(tmp_dictionary)
 
+def traverse_tree(data, tree):
+
+    current_node = next(iter(tree))
+    
+    while True:
+        feature, threshold, left, right = tree[current_node]
+        
+        if left is None and right is None:
+            return threshold
+
+        if data[feature] < threshold:
+            current_node = left
+        else:
+            current_node = right
+
+
+
+data_array = np.array([-51,	-63,	-51,	-52, -66,	-79,	-89])
+label = traverse_tree(data_array, node_dictionary)
+print(label)
+
 plt.figure(figsize=(20, 10))
 plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
 plt.tight_layout()
 plt.show()
+
