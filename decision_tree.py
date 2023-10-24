@@ -1,28 +1,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+## For debugging:
+with open(r'C:\Users\sohai\Desktop\out_data.txt', 'w') as file:
+    pass
+##-----------------------------------------------------------------
+
 node_dictionary = {
 }
 
-# Load our clean dataset
-clean_data = np.loadtxt('wifi_db/clean_dataset.txt')
-
-# Load our noisy dataset
-noisy_data = np.loadtxt('wifi_db/noisy_dataset.txt')
-
-# Splitting our clean dataset into features and labels
-clean_features = clean_data[:, :-1]
-clean_labels = clean_data[:, -1].astype(int)
-
-# def decision_tree_learning():
-print(noisy_data.shape)
-print(clean_data.shape)
-print(clean_features.shape)
-print(clean_labels.shape)
-
-print(node_dictionary)
-
+# Load the dataset
 dataset = np.loadtxt('wifi_db/clean_dataset.txt')
+
+features = dataset[:, :-1]
+labels = dataset[:, -1].astype(int)
 
 def calculate_entropy(labels):
     unique_labels = np.unique(labels)
@@ -106,13 +97,8 @@ def find_split(dataset):
 
     # Splitting the dataset into two parts based on the threshold
     split_index = np.searchsorted(sorted_dataset[:, max_IG_col], threshold, side='right')
-    splitR = sorted_dataset[:split_index]
-    splitL = sorted_dataset[split_index:]
-
-    print("Threshold Value: ", threshold)
-    print("Threshold IG: ", max_IG_for_value)
-    print("Emitter Number: ", max_IG_col)
-    print("Emitter IG: ", max_IG_of_emitter)
+    splitL = sorted_dataset[:split_index]
+    splitR = sorted_dataset[split_index:]
 
     return threshold, max_IG_col, splitL, splitR
 
@@ -120,20 +106,35 @@ def find_split(dataset):
 
 
 def decision_tree_learning(training_dataset, depth):
-    print(training_dataset)
     flag = False
     value = training_dataset[0, -1]
     for item in training_dataset:
         if item[-1] != value:
             flag = True
             break
-    if flag != True:
-        tmp = "leaf" + str(depth)
-        return {tmp : ["leaf", value, None, None]}, depth
+        else:
+            flag = False
+    if flag == False:
+        tmp = 'R ' + str(int(value))
+        return {tmp : [None, int(value), None, None]}, depth
     else:
-        split, attributeSplit, l_dataset, r_dataset = find_split(training_dataset)
-        newVal = "X" + str(attributeSplit) +  " < " + str(split)
-        tmpTree = {newVal : [attributeSplit, split, "l_branch", "r_branch"] }
+        best_threshold, best_emitter, l_dataset, r_dataset = find_split(training_dataset)
+
+## For debugging:
+        with open(r'C:\Users\sohai\Desktop\out_data.txt', 'a') as file:
+            file.write('MAIN:' + '\n')
+            file.write(str(training_dataset) + '\n\n')
+            file.write('E'+str(best_emitter)+' > '+ str(best_threshold)+'\n\n')
+            file.write('RIGHT:' + '\n')
+            file.write(str(r_dataset) + '\n')
+            file.write('LEFT:' + '\n')
+            file.write(str(l_dataset) + '\n\n\n')
+##-----------------------------------------------------------------
+
+        newVal = "X" + str(best_emitter) +  " < " + str(best_threshold)
+
+        tmpTree = {newVal : [best_emitter, best_threshold, "l_branch", "r_branch"] }
+
         l_branch, l_depth = decision_tree_learning(l_dataset, depth + 1)
         tmpKey = tmpTree[newVal]
         tmpKey[2] = next(iter(l_branch))
@@ -146,47 +147,18 @@ def decision_tree_learning(training_dataset, depth):
         tmpTree.update(r_branch)
         return tmpTree, max(l_depth, r_depth)
 
-tmp_dictionary, _ = decision_tree_learning(clean_data, 0)
+tmp_dictionary, _ = decision_tree_learning(dataset, 0)
 node_dictionary.update(tmp_dictionary)
-print(node_dictionary)
 
-# Original one by Jackson
-# -----------------------
-# def plot_decision_tree(tree, node, x, y, dx, dy, depth):
-#     if node in tree:
-#         feature, threshold, left, right = tree[node]
-#         if left is None and right is None:
-#             plt.text(x, y, f"Leaf {threshold}", fontsize=5, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
-#         else:
-#             plt.text(x, y, f"X{feature} <= {threshold}", fontsize=5, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
-        
-#         if left in tree:
-#             x_left = x - dx * (1 + depth)
-#             y_left = y - dy
-#             plt.plot([x, x_left], [y, y - dy], color='black')
-#             plot_decision_tree(tree, left, x_left, y_left, dx / 2, dy, depth + 1)
-        
-#         if right in tree:
-#             x_right = x + dx * (1 + depth)
-#             y_right = y - dy
-#             plt.plot([x, x_right], [y, y - dy], color='black')
-#             plot_decision_tree(tree, right, x_right, y_right, dx / 2, dy, depth + 1)
-
-
-# #Updated one by Alvi
-# #--------------------
-# ...
-
-# Updated tree plotting function
 def plot_decision_tree(tree, node, x, y, dx, dy, depth=0):
     if node in tree:
         feature, threshold, left, right = tree[node]
-        boxprops = dict(facecolor='lightyellow', edgecolor='black', boxstyle='round,pad=0.3')  # Adjusted node appearance
+        boxprops = dict(facecolor='lightyellow', edgecolor='black', boxstyle='round,pad=0.3') 
         
         if left is None and right is None:
-            plt.text(x, y, f"Leaf\n{threshold}", fontsize=8, ha='center', va='center', bbox=boxprops)
+            plt.text(x, y, f"R{threshold}", fontsize=8, ha='center', va='center', bbox=boxprops)
         else:
-            plt.text(x, y, f"E{feature}\n<= {threshold:.2f}", fontsize=8, ha='center', va='center', bbox=boxprops)  # Adjusted clarity of text
+            plt.text(x, y, f"E{feature} > \n{threshold:.2f}", fontsize=8, ha='center', va='center', bbox=boxprops)  
         
         if left in tree:
             x_left = x - dx / (2**depth)
@@ -200,8 +172,7 @@ def plot_decision_tree(tree, node, x, y, dx, dy, depth=0):
             plt.plot([x, x_right], [y, y_right], color='black')
             plot_decision_tree(tree, right, x_right, y_right, dx, dy, depth + 1)
 
-plt.figure(figsize=(20, 10))  # Adjusted figure size
-plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)  # Adjusted dx and dy for spacing
-plt.axis('off')
+plt.figure(figsize=(20, 10)) 
+plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0) 
 plt.tight_layout()
 plt.show()

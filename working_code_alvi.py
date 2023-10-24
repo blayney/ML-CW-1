@@ -115,7 +115,48 @@ def plot_decision_tree(tree, node, x, y, dx, dy, depth=0):
             plt.plot([x, x + dx / (2**depth)], [y, y - dy], color='black')
 
 
+def predict_room_number(data, tree):
 
+    current_node = next(iter(tree))
+    
+    while True:
+        feature, threshold, left, right = tree[current_node]
+        
+        if left is None and right is None:
+            label = threshold
+            return label
+
+        if data[feature] < threshold:
+            current_node = left
+        else:
+            current_node = right
+
+
+def run_model(dataset, tree):
+    
+    predicted_labels = [-1] * len(dataset)
+
+    for i in range(len(dataset)):
+        predicted_labels[i] = predict_room_number(dataset[i], tree)
+
+    return np.array(predicted_labels)
+
+
+def compute_accuracy(true_labels, predicted_labels):
+
+    correct_predictions = 0
+
+    for i in range(len(true_labels)):
+      if true_labels[i] == predicted_labels[i]:
+        correct_predictions += 1
+
+    return str(float(correct_predictions/len(true_labels)) * 100) + '%'
+
+
+
+
+
+#############################################################################################################    
 
 dataset = np.loadtxt('wifi_db/clean_dataset.txt')
 
@@ -124,6 +165,11 @@ tmp_dictionary, _ = decision_tree_learning(dataset, 0)
 node_dictionary = {}
 node_dictionary.update(tmp_dictionary)
 
+# Get model results and compute accuracy
+predicted_labels = run_model(dataset[:,:-1], node_dictionary)
+print(compute_accuracy(dataset[:,-1], predicted_labels))
+
+# Plotting the tree
 plt.figure(figsize=(20, 10))
 plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
 plt.tight_layout()
