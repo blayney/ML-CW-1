@@ -11,57 +11,6 @@ def get_entropy(labels):
     return entropy
 
 
-def get_best_emitter(dataset):
-    features, labels = dataset[:, :-1], dataset[:, -1]
-    total_entropy = calculate_entropy(labels)
-    max_IG = float('-inf')
-    max_IG_feature = None
-
-    for col in range(features.shape[1]):
-        unique_values = np.unique(features[:, col])
-        weighted_entropy = 0
-
-        for val in unique_values:
-            subset_labels = labels[features[:, col] == val]
-            p_val = len(subset_labels) / len(labels)
-            weighted_entropy += p_val * calculate_entropy(subset_labels)
-
-        IG = total_entropy - weighted_entropy
-
-        if IG > max_IG:
-            max_IG = IG
-            max_IG_feature = col
-
-    return max_IG_feature, max_IG
-
-
-def get_threshold_value(dataset, max_IG_col):
-    features, labels = dataset[:, max_IG_col], dataset[:, -1]
-    total_entropy = calculate_entropy(labels)
-
-    max_IG_for_value = float('-inf')
-    best_threshold, prev_value = None, None
-
-    for value in sorted(np.unique(features)):
-        current_threshold = value if prev_value is None else (value + prev_value) / 2
-        labels_below_threshold = labels[features <= current_threshold]
-        labels_above_threshold = labels[features > current_threshold]
-
-        p_below = len(labels_below_threshold) / len(labels)
-        p_above = len(labels_above_threshold) / len(labels)
-
-        weighted_entropy = (p_below * calculate_entropy(labels_below_threshold) +
-                            p_above * calculate_entropy(labels_above_threshold))
-
-        IG_for_value = total_entropy - weighted_entropy
-
-        if IG_for_value > max_IG_for_value:
-            max_IG_for_value = IG_for_value
-            best_threshold = current_threshold
-
-        prev_value = value
-
-    return best_threshold, max_IG_for_value
 def get_labelled_col(dataset, column):
     strengths_set = np.array([])
     strengths_labels = np.array([])
@@ -74,6 +23,7 @@ def get_labelled_col(dataset, column):
     sorted_strengths = strengths[sorted_indices]
 
     return sorted_strengths
+
 
 def get_IG_from_split(old_set, a, b):
     return get_entropy(old_set) - ((get_entropy(a[:, 1]) * a.shape[0] + get_entropy(b[:, 1]) * b.shape[0]) / a.shape[0])
@@ -181,16 +131,7 @@ def plot_decision_tree(tree, node, x, y, dx, dy, depth=0):
             plt.plot([x, x + dx / (2**depth)], [y, y - dy], color='black')
 
 
-
-
-dataset = np.loadtxt('wifi_db/clean_dataset.txt')
-
-tmp_dictionary, _ = decision_tree_learning(dataset, 0)
-
-node_dictionary = {}
-node_dictionary.update(tmp_dictionary)
-
-def traverse_tree(data, tree):
+def predict_room_number(data, tree):
 
     current_node = next(iter(tree))
     
@@ -198,7 +139,8 @@ def traverse_tree(data, tree):
         feature, threshold, left, right = tree[current_node]
         
         if left is None and right is None:
-            return threshold
+            label = threshold
+            return label
 
         if data[feature] < threshold:
             current_node = left
@@ -206,13 +148,61 @@ def traverse_tree(data, tree):
             current_node = right
 
 
+def run_model(dataset, tree):
+    
+    predicted_labels = [-1] * len(dataset)
 
-data_array = np.array([-51,	-63,	-51,	-52, -66,	-79,	-89])
-label = traverse_tree(data_array, node_dictionary)
-print(label)
+    for i in range(len(dataset)):
+        predicted_labels[i] = predict_room_number(dataset[i], tree)
 
-plt.figure(figsize=(20, 10))
-plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
-plt.tight_layout()
-plt.show()
+    return np.array(predicted_labels)
 
+
+def compute_accuracy(true_labels, predicted_labels):
+
+    correct_predictions = 0
+
+    for i in range(len(true_labels)):
+      if true_labels[i] == predicted_labels[i]:
+        correct_predictions += 1
+      else:
+        print('Dataset Row: '+ str(i) + '     Actual: ' + str(true_labels[i]) + '     Predicted: ' + str(predicted_labels[i])) #just to see which data went wrong 
+
+    return str(float(correct_predictions/len(true_labels)) * 100) + '%'
+
+
+def split_dataset(dataset, train_ratio=0.8):
+
+    np.random.shuffle(dataset)
+    
+    split_idx = int(len(dataset) * train_ratio)
+    
+    training_data = dataset[:split_idx]
+    test_data = dataset[split_idx:]
+    
+    return np.array(training_data), np.array(test_data)
+
+
+
+
+
+#############################################################################################################    
+
+full_dataset = np.loadtxt('wifi_db/gpt_new_dataset.txt')
+
+training_dataset, test_dataset = split_dataset(full_dataset, 0.8)
+
+tmp_dictionary, _ = decision_tree_learning(training_dataset, 0)
+
+node_dictionary = {}
+node_dictionary.update(tmp_dictionary)
+
+# Get model results and compute accuracy
+predicted_labels = run_model(test_dataset[:,:-1], node_dictionary)
+print(compute_accuracy(test_dataset[:,-1], predicted_labels))
+
+# # Plotting the tree
+# plt.figure(figsize=(20, 10))
+# plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
+# plt.tight_layout()
+# plt.show()

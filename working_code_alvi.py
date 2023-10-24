@@ -149,8 +149,22 @@ def compute_accuracy(true_labels, predicted_labels):
     for i in range(len(true_labels)):
       if true_labels[i] == predicted_labels[i]:
         correct_predictions += 1
+      else:
+        print('Dataset Row: '+ str(i) + '     Actual: ' + str(true_labels[i]) + '     Predicted: ' + str(predicted_labels[i])) #just to see which data went wrong 
 
     return str(float(correct_predictions/len(true_labels)) * 100) + '%'
+
+
+def split_dataset(dataset, train_ratio=0.8):
+
+    np.random.shuffle(dataset)
+    
+    split_idx = int(len(dataset) * train_ratio)
+    
+    training_data = dataset[:split_idx]
+    test_data = dataset[split_idx:]
+    
+    return np.array(training_data), np.array(test_data)
 
 
 
@@ -158,19 +172,21 @@ def compute_accuracy(true_labels, predicted_labels):
 
 #############################################################################################################    
 
-dataset = np.loadtxt('wifi_db/clean_dataset.txt')
+full_dataset = np.loadtxt('wifi_db/gpt_new_dataset.txt')
 
-tmp_dictionary, _ = decision_tree_learning(dataset, 0)
+training_dataset, test_dataset = split_dataset(full_dataset, 0.8)
+
+tmp_dictionary, _ = decision_tree_learning(training_dataset, 0)
 
 node_dictionary = {}
 node_dictionary.update(tmp_dictionary)
 
 # Get model results and compute accuracy
-predicted_labels = run_model(dataset[:,:-1], node_dictionary)
-print(compute_accuracy(dataset[:,-1], predicted_labels))
+predicted_labels = run_model(test_dataset[:,:-1], node_dictionary)
+print(compute_accuracy(test_dataset[:,-1], predicted_labels))
 
-# Plotting the tree
-plt.figure(figsize=(20, 10))
-plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
-plt.tight_layout()
-plt.show()
+# # Plotting the tree
+# plt.figure(figsize=(20, 10))
+# plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
+# plt.tight_layout()
+# plt.show()
