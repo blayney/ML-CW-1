@@ -129,7 +129,7 @@ def decision_tree_learning(training_dataset, depth):
             break
     if flag != True:
         tmp = "leaf" + str(depth)
-        return {tmp : ["leaf", depth, None, None]}, depth
+        return {tmp : ["leaf", value, None, None]}, depth
     else:
         split, attributeSplit, l_dataset, r_dataset = find_split(training_dataset)
         newVal = "X" + str(attributeSplit) +  " < " + str(split)
