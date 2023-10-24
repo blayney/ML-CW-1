@@ -150,27 +150,58 @@ tmp_dictionary, _ = decision_tree_learning(clean_data, 0)
 node_dictionary.update(tmp_dictionary)
 print(node_dictionary)
 
-def plot_decision_tree(tree, node, x, y, dx, dy, depth):
+# Original one by Jackson
+# -----------------------
+# def plot_decision_tree(tree, node, x, y, dx, dy, depth):
+#     if node in tree:
+#         feature, threshold, left, right = tree[node]
+#         if left is None and right is None:
+#             plt.text(x, y, f"Leaf {threshold}", fontsize=5, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
+#         else:
+#             plt.text(x, y, f"X{feature} <= {threshold}", fontsize=5, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
+        
+#         if left in tree:
+#             x_left = x - dx * (1 + depth)
+#             y_left = y - dy
+#             plt.plot([x, x_left], [y, y - dy], color='black')
+#             plot_decision_tree(tree, left, x_left, y_left, dx / 2, dy, depth + 1)
+        
+#         if right in tree:
+#             x_right = x + dx * (1 + depth)
+#             y_right = y - dy
+#             plt.plot([x, x_right], [y, y - dy], color='black')
+#             plot_decision_tree(tree, right, x_right, y_right, dx / 2, dy, depth + 1)
+
+
+# #Updated one by Alvi
+# #--------------------
+# ...
+
+# Updated tree plotting function
+def plot_decision_tree(tree, node, x, y, dx, dy, depth=0):
     if node in tree:
         feature, threshold, left, right = tree[node]
+        boxprops = dict(facecolor='lightyellow', edgecolor='black', boxstyle='round,pad=0.3')  # Adjusted node appearance
+        
         if left is None and right is None:
-            plt.text(x, y, f"Leaf {threshold}", fontsize=1, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
+            plt.text(x, y, f"Leaf\n{threshold}", fontsize=8, ha='center', va='center', bbox=boxprops)
         else:
-            plt.text(x, y, f"X{feature} <= {threshold}", fontsize=1, ha='center', va='center', bbox=dict(facecolor='white', edgecolor='black'))
+            plt.text(x, y, f"E{feature}\n<= {threshold:.2f}", fontsize=8, ha='center', va='center', bbox=boxprops)  # Adjusted clarity of text
         
         if left in tree:
-            x_left = x - dx * (1 + depth)
+            x_left = x - dx / (2**depth)
             y_left = y - dy
-            plt.plot([x, x_left], [y, y - dy], color='black')
-            plot_decision_tree(tree, left, x_left, y_left, dx / 2, dy, depth + 1)
+            plt.plot([x, x_left], [y, y_left], color='black')
+            plot_decision_tree(tree, left, x_left, y_left, dx, dy, depth + 1)
         
         if right in tree:
-            x_right = x + dx * (1 + depth)
+            x_right = x + dx / (2**depth)
             y_right = y - dy
-            plt.plot([x, x_right], [y, y - dy], color='black')
-            plot_decision_tree(tree, right, x_right, y_right, dx / 2, dy, depth + 1)
+            plt.plot([x, x_right], [y, y_right], color='black')
+            plot_decision_tree(tree, right, x_right, y_right, dx, dy, depth + 1)
 
-plt.figure(figsize=(800, 10))
-plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=2, dy=2, depth=0)
+plt.figure(figsize=(20, 10))  # Adjusted figure size
+plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)  # Adjusted dx and dy for spacing
 plt.axis('off')
+plt.tight_layout()
 plt.show()
