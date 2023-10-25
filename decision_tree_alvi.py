@@ -11,7 +11,7 @@ def calculate_entropy(labels):
     return entropy
 
 
-def get_best_emitter(dataset):
+def get_best_feature(dataset):
     features, labels = dataset[:, :-1], dataset[:, -1]
     total_entropy = calculate_entropy(labels)
     max_IG = float('-inf')
@@ -65,7 +65,7 @@ def get_threshold_value(dataset, max_IG_col):
 
 
 def find_split(dataset):
-    max_IG_col, _ = get_best_emitter(dataset)
+    max_IG_col, _ = get_best_feature(dataset)
     threshold, _ = get_threshold_value(dataset, max_IG_col)
 
     sorted_indices = np.argsort(dataset[:, max_IG_col])
@@ -98,7 +98,7 @@ def decision_tree_learning(training_dataset, depth):
     return tmpTree, max(l_depth, r_depth)
 
 
-def plot_decision_tree(tree, node, x, y, dx, dy, depth=0):
+def prepare_visual_decision_tree(tree, node, x, y, dx, dy, depth=0):
     if node in tree:
         feature, threshold, left, right = tree[node]
         boxprops = dict(facecolor='lightyellow', edgecolor='black', boxstyle='round,pad=0.3')
@@ -107,12 +107,19 @@ def plot_decision_tree(tree, node, x, y, dx, dy, depth=0):
                  fontsize=8, ha='center', va='center', bbox=boxprops)
 
         if left in tree:
-            plot_decision_tree(tree, left, x - dx / (2**depth), y - dy, dx, dy, depth + 1)
+            prepare_visual_decision_tree(tree, left, x - dx / (2**depth), y - dy, dx, dy, depth + 1)
             plt.plot([x, x - dx / (2**depth)], [y, y - dy], color='black')
 
         if right in tree:
-            plot_decision_tree(tree, right, x + dx / (2**depth), y - dy, dx, dy, depth + 1)
+            prepare_visual_decision_tree(tree, right, x + dx / (2**depth), y - dy, dx, dy, depth + 1)
             plt.plot([x, x + dx / (2**depth)], [y, y - dy], color='black')
+
+
+def plot_decision_tree(node_dictionary):
+        plt.figure(figsize=(20, 10))
+        prepare_visual_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
+        plt.tight_layout()
+        plt.show()
 
 
 def predict_room_number(data, tree):
@@ -142,23 +149,7 @@ def run_model(dataset, tree):
     return np.array(predicted_labels)
 
 
-def compute_accuracy(true_labels, predicted_labels):
-
-    correct_predictions = 0
-
-    print('')
-    print('----------------------------Wrong Predictions----------------------------')
-    for i in range(len(true_labels)):
-      if true_labels[i] == predicted_labels[i]:
-        correct_predictions += 1
-      else:
-        print('Dataset Row: '+ str(i) + '     Actual: ' + str(true_labels[i]) + '     Predicted: ' + str(predicted_labels[i])) #just to see which data went wrong 
-    print('---------------------------------------------------------------------------')
-
-    return float(correct_predictions/len(true_labels))
-
-
-def split_dataset(dataset, train_ratio=0.8):
+def split_dataset(dataset, train_ratio):
 
     np.random.shuffle(dataset)
     
@@ -168,6 +159,121 @@ def split_dataset(dataset, train_ratio=0.8):
     test_data = dataset[split_idx:]
     
     return np.array(training_data), np.array(test_data)
+
+
+def evaluate(test_db, trained_tree):
+    predicted_labels = run_model(test_db[:,:-1], node_dictionary)
+    true_labels = test_db[:,-1]
+
+    correct_predictions = 0
+
+    for i in range(len(true_labels)):
+      if true_labels[i] == predicted_labels[i]:
+        correct_predictions += 1
+
+    return float(correct_predictions/len(true_labels))
+
+
+def plot_confusion_matrix(matrix):
+
+    title="Confusion Matrix \n"
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(matrix, interpolation='nearest', cmap=plt.cm.YlOrBr)
+
+    ax.figure.colorbar(im, ax=ax)
+    
+    classes = ['1', '2', '3', '4']
+    
+    ax.set(xticks=np.arange(matrix.shape[1]),
+           yticks=np.arange(matrix.shape[0]),
+           xticklabels=classes, yticklabels=classes,
+           ylabel='Actual Classes',
+           xlabel='Predicted Classes')
+    
+    ax.set_title(title, weight='bold')
+
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            ax.text(j, i, format(matrix[i, j], 'd'),
+                    ha="center", va="center",
+                    color="white" if matrix[i, j] > matrix.max() / 2 else "black")
+            
+    fig.tight_layout()
+    plt.show()
+
+
+def run_cross_validation(dataset, folds=10):
+
+    np.random.shuffle(dataset)
+
+    fold_size = len(dataset) // folds
+    
+    confusion_matrix = np.zeros((4, 4))
+    
+    for i in range(folds):
+        test_data = dataset[i * fold_size : (i + 1) * fold_size]
+        
+        train_data = np.concatenate((dataset[: i * fold_size], dataset[(i + 1) * fold_size :]), axis=0)
+        
+        tmp_dictionary, _ = decision_tree_learning(train_data, 0)
+        node_dictionary = {}
+        node_dictionary.update(tmp_dictionary)
+
+        predicted_labels = run_model(test_data[:, :-1], node_dictionary)
+        true_labels = test_data[:, -1]
+
+        for j in range(len(true_labels)):
+            actual = int(true_labels[j]) - 1
+            predicted = int(predicted_labels[j]) - 1
+            confusion_matrix[actual][predicted] += 1
+
+    final_confusion_matrix = np.round(confusion_matrix / folds).astype(int)
+
+    return np.array(final_confusion_matrix)
+
+
+def compute_accuracy(confusion_matrix):
+
+    total_sum = 0
+    true_sum = 0
+
+    for i in range(4):
+        for j in range(4):
+            total_sum += confusion_matrix[i][j]
+            if i == j:
+                true_sum += confusion_matrix[i][j]
+
+    accuracy = float(true_sum) / total_sum
+
+    return np.round(accuracy, 3)
+
+
+def recalls_and_precisions(confusion_matrix):
+    num_classes = confusion_matrix.shape[0]
+    recalls = []
+    precisions = []
+    
+    for i in range(num_classes):
+        TP = confusion_matrix[i][i]
+        FN = sum(confusion_matrix[i, :]) - TP
+        FP = sum(confusion_matrix[:, i]) - TP
+        
+        recall = TP / (TP + FN)
+        precision = TP / (TP + FP)
+        
+        recalls.append(recall)
+        precisions.append(precision)
+
+        print(f"Class {i+1} ---       Recall: {recall:.3f}       Precision: {precision:.3f}")
+    
+    return recalls, precisions
+
+
+def f1_measures(precisions, recalls):
+    for i in range(len(precisions)):
+        f1 = 2 * (precisions[i] * recalls[i]) / (precisions[i] + recalls[i])
+        print(f"Class {i+1} ---       F1-Measure: {f1:.3f}")
 
 
 
@@ -186,10 +292,21 @@ if __name__ == '__main__':
     node_dictionary = {}
     node_dictionary.update(tmp_dictionary)
 
-    predicted_labels = run_model(test_dataset[:,:-1], node_dictionary)
-    print('Prediction Accuracy: ', compute_accuracy(test_dataset[:,-1], predicted_labels))
+    print('Prediction Accuracy on Test Data: ', evaluate(test_dataset, node_dictionary))
 
-    # plt.figure(figsize=(20, 10))
-    # plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
-    # plt.tight_layout()
-    # plt.show()
+
+
+    confusion_matrix = run_cross_validation(full_dataset, 10)
+
+    algorithm_accuracy = compute_accuracy(confusion_matrix)
+    print('Algorithm Accuracy:', algorithm_accuracy)
+
+    recalls, precisions = recalls_and_precisions(confusion_matrix)
+
+    f1_measures(precisions, recalls)
+
+
+
+    # plot_decision_tree(node_dictionary)
+
+    # plot_confusion_matrix(confusion_matrix)
