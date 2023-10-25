@@ -162,13 +162,16 @@ def compute_accuracy(true_labels, predicted_labels):
 
     correct_predictions = 0
 
+    print('')
+    print('----------------------------Wrong Predictions----------------------------')
     for i in range(len(true_labels)):
       if true_labels[i] == predicted_labels[i]:
         correct_predictions += 1
       else:
         print('Dataset Row: '+ str(i) + '     Actual: ' + str(true_labels[i]) + '     Predicted: ' + str(predicted_labels[i])) #just to see which data went wrong 
+    print('---------------------------------------------------------------------------')
 
-    return str(float(correct_predictions/len(true_labels)) * 100) + '%'
+    return float(correct_predictions/len(true_labels))
 
 
 def split_dataset(dataset, train_ratio=0.8):
@@ -188,7 +191,7 @@ def split_dataset(dataset, train_ratio=0.8):
 
 #############################################################################################################    
 
-full_dataset = np.loadtxt('wifi_db/gpt_new_dataset.txt')
+full_dataset = np.loadtxt('wifi_db/clean_dataset.txt')
 
 training_dataset, test_dataset = split_dataset(full_dataset, 0.8)
 
@@ -199,7 +202,7 @@ node_dictionary.update(tmp_dictionary)
 
 # Get model results and compute accuracy
 predicted_labels = run_model(test_dataset[:,:-1], node_dictionary)
-print(compute_accuracy(test_dataset[:,-1], predicted_labels))
+print('Prediction Accuracy: ', compute_accuracy(test_dataset[:,-1], predicted_labels))
 
 # # Plotting the tree
 # plt.figure(figsize=(20, 10))

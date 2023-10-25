@@ -146,13 +146,16 @@ def compute_accuracy(true_labels, predicted_labels):
 
     correct_predictions = 0
 
+    print('')
+    print('----------------------------Wrong Predictions----------------------------')
     for i in range(len(true_labels)):
       if true_labels[i] == predicted_labels[i]:
         correct_predictions += 1
       else:
         print('Dataset Row: '+ str(i) + '     Actual: ' + str(true_labels[i]) + '     Predicted: ' + str(predicted_labels[i])) #just to see which data went wrong 
+    print('---------------------------------------------------------------------------')
 
-    return str(float(correct_predictions/len(true_labels)) * 100) + '%'
+    return float(correct_predictions/len(true_labels))
 
 
 def split_dataset(dataset, train_ratio=0.8):
@@ -172,21 +175,21 @@ def split_dataset(dataset, train_ratio=0.8):
 
 #############################################################################################################    
 
-full_dataset = np.loadtxt('wifi_db/gpt_new_dataset.txt')
+if __name__ == '__main__': 
 
-training_dataset, test_dataset = split_dataset(full_dataset, 0.8)
+    full_dataset = np.loadtxt('wifi_db/clean_dataset.txt')
 
-tmp_dictionary, _ = decision_tree_learning(training_dataset, 0)
+    training_dataset, test_dataset = split_dataset(full_dataset, 0.8)
 
-node_dictionary = {}
-node_dictionary.update(tmp_dictionary)
+    tmp_dictionary, _ = decision_tree_learning(training_dataset, 0)
 
-# Get model results and compute accuracy
-predicted_labels = run_model(test_dataset[:,:-1], node_dictionary)
-print(compute_accuracy(test_dataset[:,-1], predicted_labels))
+    node_dictionary = {}
+    node_dictionary.update(tmp_dictionary)
 
-# # Plotting the tree
-# plt.figure(figsize=(20, 10))
-# plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
-# plt.tight_layout()
-# plt.show()
+    predicted_labels = run_model(test_dataset[:,:-1], node_dictionary)
+    print('Prediction Accuracy: ', compute_accuracy(test_dataset[:,-1], predicted_labels))
+
+    # plt.figure(figsize=(20, 10))
+    # plot_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
+    # plt.tight_layout()
+    # plt.show()
