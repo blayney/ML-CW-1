@@ -119,7 +119,7 @@ def plot_decision_tree(node_dictionary):
         plt.figure(figsize=(20, 10))
         prepare_visual_decision_tree(node_dictionary, next(iter(node_dictionary)), x=0, y=0, dx=20, dy=5, depth=0)
         plt.tight_layout()
-        plt.show()
+        plt.savefig('Old_Tree.png')
 
 
 def predict_room_number(data, tree):
@@ -200,7 +200,7 @@ def plot_confusion_matrix(matrix):
                     color="white" if matrix[i, j] > matrix.max() / 2 else "black")
             
     fig.tight_layout()
-    plt.show()
+    plt.savefig('Old_Confusion_Matrix.png')
 
 
 def run_cross_validation(dataset, folds=10):
@@ -307,6 +307,6 @@ if __name__ == '__main__':
 
 
 
-    # plot_decision_tree(node_dictionary)
+    plot_decision_tree(node_dictionary)
 
-    # plot_confusion_matrix(confusion_matrix)
+    plot_confusion_matrix(confusion_matrix)
