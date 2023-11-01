@@ -2,7 +2,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Node:
+    """ Class for each individual node in the decision tree. """
+
     def __init__(self, feature=None, threshold=None, label=None, left_child=None, right_child=None):
+        """ Initialize a decision tree node.
+
+        Args:
+            feature (int or None): The emitter used for splitting the dataset at this node, None when we know the room.
+            threshold (float or None): The dB value for splitting the dataset based on the emitter, None when we know the room.
+            label (int or None): The label for this node, which contains information about the decision needing to be made or the room number.
+            left_child (Node or None): The left child node (subtree). Occurs when there is a decision and contains the split dataset, None when we know the room.
+            right_child (Node or None): The right child node (subtree). Occurs when there is a decision and contains the other part of the split dataset, None when we know the room.
+
+        Attributes:
+            max_tree_depth (int): The maximum depth of the decision tree. Used for pruning.
+
+        Returns: 
+            None
+        """
+
         self.feature = feature
         self.threshold = threshold
         self.max_tree_depth = 0
@@ -12,6 +30,7 @@ class Node:
 
 
 class DecisionTreeModel:
+    """ Class used to store the whole decision tree. """
 
 # Initialization and basic utility method:
     def __init__(self, dataset_path, folds=10, depth_limit=None):
