@@ -563,29 +563,43 @@ class DecisionTreeModel:
         plt.savefig('Loss_vs_Depth.png')
 
 
-# Driver method:
+    # Driver method:
     def run(self):
+        """ Runs the entire decision tree algorithm and generates evaluation results.
+        These are then visualised
+        """
+
+        # build decision tree & get maximum depth of it
         self.root_node, self.tree_depth = self.decision_tree_learning(self.full_dataset, 0, self.depth_limit)
 
+        # output maximum depth
         print('\nMaximum Depth of the Trained Tree:    ', self.tree_depth)
 
+        # perform cross-validation and obtain confusion matrix
         confusion_matrix = self.run_cross_validation(self.full_dataset)
+
+        # calculate algorithm accuracy and output it
         algorithm_accuracy = self.compute_accuracy(confusion_matrix)
         print('\nAlgorithm Accuracy:    ', algorithm_accuracy)
 
+        # calculate and output classification metrics for each class
         print("\nCross Validation Classification Metrics for Each Class:        ")
         recalls, precisions, f1_scores = self.compute_metrics(confusion_matrix)
-
+        
+        # calculate and output macro-averaged recall
         macro_averaged_recall = self.do_macro_avergage(recalls)
         print('\nMacro-Averaged Recall:    ', macro_averaged_recall)
 
+        # calculate and output macro-averaged precision
         macro_averaged_precision = self.do_macro_avergage(precisions)
         print('Macro-Averaged Precision:    ', macro_averaged_precision)
 
+        # calculate and output macro-averaged f1-score
         macro_averaged_f1_score = self.do_macro_avergage(f1_scores)
         print('Macro-Averaged F1-Score:    ', macro_averaged_f1_score)
         print(' ')
 
+        # generate visualisations for decision tree, confusion matrix, loss graph
         self.plot_decision_tree(self.root_node) 
         self.plot_confusion_matrix(confusion_matrix)
         self.plot_loss(self.entropy_values)
