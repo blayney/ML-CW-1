@@ -8,11 +8,17 @@ class Node:
         """ Initialize a decision tree node.
 
         Args:
-            feature (int or None): The emitter used for splitting the dataset at this node, None when we know the room.
-            threshold (float or None): The dB value for splitting the dataset based on the emitter, None when we know the room.
-            label (int or None): The label for this node, which contains information about the decision needing to be made or the room number.
-            left_child (Node or None): The left child node (subtree). Occurs when there is a decision and contains the split dataset, None when we know the room.
-            right_child (Node or None): The right child node (subtree). Occurs when there is a decision and contains the other part of the split dataset, None when we know the room.
+            feature (int or None): The emitter used for splitting the dataset at this node,
+                None when we know the room.
+            threshold (float or None): The dB value for splitting the dataset based on the 
+                emitter, None when we know the room.
+            label (int or None): The label for this node, which contains information about 
+                the decision needing to be made or the room number.
+            left_child (Node or None): The left child node (subtree). Occurs when there is 
+                a decision and contains the split dataset, None when we know the room.
+            right_child (Node or None): The right child node (subtree). Occurs when there 
+                is a decision and contains the other part of the split dataset, None when 
+                we know the room.
 
         Attributes:
             max_tree_depth (int): The maximum depth of the decision tree. Used for pruning.
@@ -34,23 +40,28 @@ class DecisionTreeModel:
 
 # Initialization and basic utility method:
     def __init__(self, dataset_path, folds=10, depth_limit=None):
-        """ Initialize an instance of DecisionTreeModel, reads in dataset and stores it in full_dataset.
+        """ Initialize an instance of DecisionTreeModel, reads in dataset and stores it in
+            full_dataset.
 
         Args:
             dataset_path (str): The filepath to the dataset file.
-            folds (int, optional): The number of folds to be used in cross-validation. Defaults to 10.
-            depth_limit (int or None, optional): The maximum depth allowed for the decision tree. Defaults to None.
+            folds (int, optional): The number of folds to be used in cross-validation. 
+                Defaults to 10.
+            depth_limit (int or None, optional): The maximum depth allowed for the decision
+                tree. Defaults to None.
 
         Attributes:
             dataset_path (str): The path to the dataset file.
             folds (int): The number of folds to be used in cross-validation.
             depth_limit (int or None): The maximum depth allowed for the decision tree.
-            full_dataset (numpy.ndarray): A NumPy array containing the full dataset loaded from 'dataset_path'.
-            entropy_values (list): A list to store entropy values. #not sure on this
+            full_dataset (numpy.ndarray): A NumPy array containing the full dataset loaded 
+                from 'dataset_path'.
+            entropy_values (list): A list to store entropy values. ###
 
         Returns:
             None
         """
+
         self.dataset_path = dataset_path
         self.folds = folds
         self.depth_limit = depth_limit
@@ -59,7 +70,16 @@ class DecisionTreeModel:
                         
 
     # Core decision tree building and prediction methods:
-    def calculate_entropy(self, labels):
+    def calculate_entropy(self, labels): 
+        """ Calculate the entropy of a set of labels. ###
+
+        Args:
+            labels (numpy.ndarray): An array containing room numbers for data instances. ###
+
+        Returns:
+            float: The entropy value for the given set of room numbers.
+        """
+
         unique_labels = np.unique(labels)
         entropy = 0
         for label in unique_labels:
@@ -69,32 +89,53 @@ class DecisionTreeModel:
 
 
     def get_best_feature_and_threshold(self, dataset):
-        features, labels = dataset[:, :-1], dataset[:, -1]
-        total_entropy = self.calculate_entropy(labels)
+        """ Find the best feature and threshold to split the dataset based on information 
+            gain.
+
+        Args:
+            dataset (numpy.ndarray): The dataset containing the measurements in dB 
+                (features) and room numbers (labels).
+
+        Returns:
+            tuple: A tuple (best_feature, best_threshold) representing the best feature 
+                index and threshold value that maximize information gain when splitting 
+                the dataset.
+        """
+
+        features, labels = dataset[:, :-1], dataset[:, -1] # extract measurements and rooms from the dataset
+        total_entropy = self.calculate_entropy(labels) # calculates total entropy of entire dataset
+        
+        # initialise variables to keep track of the best information gain and its features/threshold
         max_IG = float('-inf')
         best_threshold, best_feature = None, None
 
+        # iterate over each column in the dataset
         for col in range(features.shape[1]):
-            unique_values = np.unique(features[:, col])
+            unique_values = np.unique(features[:, col]) # finds unique values in current feature column
             
-            if len(unique_values) == 1:
+            if len(unique_values) == 1: # if there is only one unique value, skip the feature, gets rid of error on single row datasets
                 continue
             
             prev_value = None
             for value in unique_values:
-                current_threshold = value if prev_value is None else (value + prev_value) / 2
+                current_threshold = value if prev_value is None else (value + prev_value) / 2 # calculate threshold of current iteration
                 
+                # split rooms based on current threshold
                 labels_below_threshold = labels[features[:, col] <= current_threshold]
                 labels_above_threshold = labels[features[:, col] > current_threshold]
 
+                # calculate probabilities of samples falling above and below threshold
                 p_below = len(labels_below_threshold) / len(labels)
                 p_above = len(labels_above_threshold) / len(labels)
 
+                # calculate weighted entropy for this split
                 weighted_entropy = (p_below * self.calculate_entropy(labels_below_threshold) +
                                     p_above * self.calculate_entropy(labels_above_threshold))
 
+                # calculate information gain for this split
                 IG = total_entropy - weighted_entropy
 
+                # update best feature, threshold if current split has higher information gain
                 if IG > max_IG:
                     max_IG = IG
                     best_threshold = current_threshold
@@ -106,36 +147,84 @@ class DecisionTreeModel:
 
 
     def find_split(self, dataset):
+        """ Find the best split for the dataset based on the given criteria.
+
+        Args:
+            dataset (numpy.ndarray): The dataset containing features and labels.
+
+        Returns:
+            tuple: A tuple (threshold, best_feature, splitL, splitR) representing the best split
+            information for the dataset.
+                - threshold (float): The threshold value used for the split.
+                - best_feature (int): The index of the best feature for splitting.
+                - splitL (numpy.ndarray): The dataset split with data points where the best feature
+                    is less than or equal to the threshold.
+                - splitR (numpy.ndarray): The dataset split with data points where the best feature
+                    is greater than the threshold.
+        """
+
         best_feature, threshold = self.get_best_feature_and_threshold(dataset)
+
         splitR = dataset[dataset[:, best_feature] > threshold]
         splitL = dataset[dataset[:, best_feature] <= threshold]
+
         return threshold, best_feature, splitL, splitR
 
 
     def decision_tree_learning(self, training_dataset, current_depth, depth_limit):
+        """ Recursively construct a decision tree using the training dataset.
 
+        Args:
+            training_dataset (numpy.ndarray): The dataset used for training the decision tree.
+            current_depth (int): The current depth of the decision tree during recursion.
+            depth_limit (int or None): The maximum depth allowed for the decision tree. Set to None for no limit.
+
+        Returns:
+            tuple: A tuple (node, tree_depth) representing the constructed decision tree node
+            and the depth of the tree.
+                - node (Node): The root node of the decision tree or its subtree.
+                - tree_depth (int): The depth of the constructed decision tree.
+        """
+
+        # calculate the current entropy of the dataset and add it to array
         current_entropy = self.calculate_entropy(training_dataset[:, -1])
         self.entropy_values.append((current_depth, current_entropy))
 
+        # check if depth limit has been reached, exit condition/base case and picks most common room as label
         if depth_limit is not None and current_depth == depth_limit:
             most_common_label = int(np.bincount(training_dataset[:, -1].astype(int)).argmax())
             return Node(label=most_common_label), current_depth
 
+        # check if all labels are the same and returns node with this label
         if len(np.unique(training_dataset[:, -1])) == 1:
             label_value = int(training_dataset[0, -1])
             return Node(label=label_value), current_depth
-
+        
+        # find best split and recursively create left and right sub-decision-trees
         best_threshold, best_emitter, l_dataset, r_dataset = self.find_split(training_dataset)
         left_node, left_depth = self.decision_tree_learning(l_dataset, current_depth + 1, depth_limit)
         right_node, right_depth = self.decision_tree_learning(r_dataset, current_depth + 1, depth_limit)
 
+        # returns this node with the decision made and maximum depth of its children
         return Node(feature=best_emitter, threshold=best_threshold, left_child=left_node, right_child=right_node), max(left_depth, right_depth)
 
 
     def find_class(self, sample, node):
+        """ Traverse the decision tree to find the class label for a given sample.
+
+        Args:
+            sample (numpy.ndarray): The sample for which to predict the class label.
+            node (Node): The root node of the decision tree or its subtree.
+
+        Returns:
+            int: The predicted room for the given sample based on the decision tree.
+        """
+
+        # if current node is a leaf, return its label (room number)
         if node.label is not None:
             return node.label
 
+        # traverse left or right subtree based on sample's feature value
         if sample[node.feature] <= node.threshold:
             return self.find_class(sample, node.left_child)
         else:
@@ -143,12 +232,24 @@ class DecisionTreeModel:
 
     
     def run_model(self, dataset, tree):
+        """ Use the decision tree model to predict labels for a dataset.
 
+        Args:
+            dataset (numpy.ndarray): The dataset for which to make predictions.
+            tree (Node): The root node of the decision tree model.
+
+        Returns:
+            numpy.ndarray: An array containing predicted class labels for each sample in the dataset.
+        """
+
+        # initialise list to store labels
         predicted_labels = [-1] * len(dataset)
 
+        # iterate over dataset and predict class label for each sample
         for i in range(len(dataset)):
             predicted_labels[i] = self.find_class(dataset[i], tree)
 
+        # convert list of predicted labels to a numpy array
         return np.array(predicted_labels)
 
 
