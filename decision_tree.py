@@ -34,6 +34,23 @@ class DecisionTreeModel:
 
 # Initialization and basic utility method:
     def __init__(self, dataset_path, folds=10, depth_limit=None):
+        """ Initialize an instance of DecisionTreeModel, reads in dataset and stores it in full_dataset.
+
+        Args:
+            dataset_path (str): The filepath to the dataset file.
+            folds (int, optional): The number of folds to be used in cross-validation. Defaults to 10.
+            depth_limit (int or None, optional): The maximum depth allowed for the decision tree. Defaults to None.
+
+        Attributes:
+            dataset_path (str): The path to the dataset file.
+            folds (int): The number of folds to be used in cross-validation.
+            depth_limit (int or None): The maximum depth allowed for the decision tree.
+            full_dataset (numpy.ndarray): A NumPy array containing the full dataset loaded from 'dataset_path'.
+            entropy_values (list): A list to store entropy values. #not sure on this
+
+        Returns:
+            None
+        """
         self.dataset_path = dataset_path
         self.folds = folds
         self.depth_limit = depth_limit
@@ -41,7 +58,7 @@ class DecisionTreeModel:
         self.entropy_values = []
                         
 
-# Core decision tree building and prediction methods:
+    # Core decision tree building and prediction methods:
     def calculate_entropy(self, labels):
         unique_labels = np.unique(labels)
         entropy = 0
