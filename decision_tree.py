@@ -285,13 +285,13 @@ class DecisionTreeModel:
 
 
     def do_macro_avergage(self, data):
-        """Calculate the macro-average of a list of values.
+        """Calculate the macro-avergage of a list of values.
 
         Args:
-            data (list): A list of numerical values for which the macro-average is to be calculated.
+            data (list): A list of numerical values for which the macro-avergage is to be calculated.
 
         Returns:
-            float: The macro-average of the provided list of values, rounded to 5 decimal places.
+            float: The macro-avergage of the provided list of values, rounded to 5 decimal places.
         """
 
         size = len(data)
