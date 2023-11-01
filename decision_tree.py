@@ -284,7 +284,7 @@ class DecisionTreeModel:
         return float(correct_predictions/len(true_labels))
 
 
-    def do_macro_avergage(self, data):
+    def do_macro_average(self, data):
         """Calculate the macro-avergage of a list of values.
 
         Args:
@@ -587,15 +587,15 @@ class DecisionTreeModel:
         recalls, precisions, f1_scores = self.compute_metrics(confusion_matrix)
         
         # calculate and output macro-averaged recall
-        macro_averaged_recall = self.do_macro_avergage(recalls)
+        macro_averaged_recall = self.do_macro_average(recalls)
         print('\nMacro-Averaged Recall:    ', macro_averaged_recall)
 
         # calculate and output macro-averaged precision
-        macro_averaged_precision = self.do_macro_avergage(precisions)
+        macro_averaged_precision = self.do_macro_average(precisions)
         print('Macro-Averaged Precision:    ', macro_averaged_precision)
 
         # calculate and output macro-averaged f1-score
-        macro_averaged_f1_score = self.do_macro_avergage(f1_scores)
+        macro_averaged_f1_score = self.do_macro_average(f1_scores)
         print('Macro-Averaged F1-Score:    ', macro_averaged_f1_score)
         print(' ')
 
