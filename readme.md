@@ -1,4 +1,4 @@
-# Decision Tree Model for Wi-Fi Locationing
+# Decision Tree Model for Room Locationing based on Wi-Fi Reception
 
 This project provides a decision tree-based model for predicting room numbers based on Wi-Fi signal strengths. 
 
