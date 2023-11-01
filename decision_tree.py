@@ -253,23 +253,52 @@ class DecisionTreeModel:
         return np.array(predicted_labels)
 
 
-# Evaluation and metrics computation methods:
+    # Evaluation and metrics computation methods:
     def evaluate(self, test_db, trained_tree): #function not being used anywhere, but the spec said we had to implement, plz check @Jackson / @Will
+        """ Evaluate the accuracy of a trained decision tree on a test dataset.
+
+        Args:
+            test_db (numpy.ndarray): The test dataset containing features and true class labels.
+            trained_tree (Node): The trained decision tree to be evaluated.
+
+        Returns:
+            float: The accuracy of the trained decision tree on the test dataset as a floating-point value
+                in the range [0.0, 1.0].
+        """
+
+        # use the trained decision tree to predict class labels for the test dataset
         predicted_labels = self.run_model(test_db[:,:-1], self.root_node)
+
+        # extract true class labels from test dataset
         true_labels = test_db[:,-1]
 
+        # initialise counter for correct predictions
         correct_predictions = 0
 
+        # count how many labels were correct
         for i in range(len(true_labels)):
             if true_labels[i] == predicted_labels[i]:
                 correct_predictions += 1
 
+        # calculate and return accuracy
         return float(correct_predictions/len(true_labels))
 
 
     def do_macro_avergage(self, data):
+        """Calculate the macro-average of a list of values.
+
+        Args:
+            data (list): A list of numerical values for which the macro-average is to be calculated.
+
+        Returns:
+            float: The macro-average of the provided list of values, rounded to 5 decimal places.
+        """
+
         size = len(data)
+
         sum = 0
+
+        # calculate sum of all values in the list
         for i in range (size):
             sum += data[i]
 
@@ -277,70 +306,124 @@ class DecisionTreeModel:
 
 
     def compute_metrics(self, confusion_matrix):
+        """ Calculate various classification metrics for multiple classes based on a confusion matrix.
+        This method calculates recall, precision, and F1-score for each class using the given confusion matrix.
+        It then returns lists of these metrics for all classes, providing insights into the model's performance
+        on a per-class basis.
+
+        Args:
+            confusion_matrix (numpy.ndarray): A confusion matrix representing the model's performance
+            in a multi-class classification task.
+
+        Returns:
+            tuple: A tuple containing lists of recall, precision, and F1-score for each class.
+                - recalls (list): A list of recall values for each class.
+                - precisions (list): A list of precision values for each class.
+                - f1_scores (list): A list of F1-score values for each class.
+        """
+
+        # get number of classes from the confusion matrix
         num_classes = confusion_matrix.shape[0]
+
+        # used to store data for each class
         recalls = []
         precisions = []
         f1_scores = []
 
+        # iterate over each class to calculate metrics
         for i in range(num_classes):
+            # calculates true positives, false negatives and false positives
             TP = confusion_matrix[i][i]
             FN = sum(confusion_matrix[i, :]) - TP
             FP = sum(confusion_matrix[:, i]) - TP
             
+            # calculate recall, precision & f1-score for current class
             recall = TP / (TP + FN)
             precision = TP / (TP + FP)
             f1 = 2 * (precision * recall) / (precision + recall)
             
+            # updates lists with values
             recalls.append(recall)
             precisions.append(precision)
             f1_scores.append(f1)
 
+            # print metrics for current class
             print(f"Class {i+1} --->     Recall: {recall:.5f}    Precision: {precision:.5f}     F1-Measure: {f1:.5f}")
 
         return recalls, precisions, f1_scores
 
 
     def run_cross_validation(self, dataset, folds=10):
+        """ Perform k-fold cross-validation and return the averaged confusion matrix.
 
+        Args:
+            dataset (numpy.ndarray): The dataset to be used for cross-validation.
+            folds (int, optional): The number of folds for cross-validation. Defaults to 10.
+
+        Returns:
+            numpy.ndarray: The averaged confusion matrix based on k-fold cross-validation.
+        """
+
+        # shuffle dataset to ensure randomness in fold assignments
         np.random.shuffle(dataset)
 
+        # determine size of each fold
         fold_size = len(dataset) // folds
 
+        # initialise confusion matrix to store results
         confusion_matrix = np.zeros((4, 4))
 
+        # perform k-fold cross validation
         for i in range(folds):
+            # split dataset into training & testing sets for current fold
             test_data = dataset[i * fold_size : (i + 1) * fold_size]
-            
             train_data = np.concatenate((dataset[: i * fold_size], dataset[(i + 1) * fold_size :]), axis=0)
             
+            # train decision tree on training data for current fold
             self.root_node, _ = self.decision_tree_learning(train_data, 0, self.depth_limit)
+            
+            # use trained model to make predictions on test data
             predicted_labels = self.run_model(test_data[:, :-1], self.root_node)
 
+            # extract true labels from test data
             true_labels = test_data[:, -1]
 
+            # update confusion matrix for current fold
             for j in range(len(true_labels)):
                 actual = int(true_labels[j]) - 1
                 predicted = int(predicted_labels[j]) - 1
                 confusion_matrix[actual][predicted] += 1
 
+        # calculate averaged confusion matrix
         final_confusion_matrix = np.round(confusion_matrix / folds).astype(int)
 
         return np.array(final_confusion_matrix)
 
 
     def compute_accuracy(self, confusion_matrix):
+        """ Calculate the accuracy based on the confusion matrix.
 
+        Args:
+            confusion_matrix (numpy.ndarray): The confusion matrix representing the model's performance.
+
+        Returns:
+            float: The accuracy of the model, rounded to 5 decimal places.
+        """
+        # initialise counters to track total, correctly predicted instances
         total_sum = 0
         true_sum = 0
 
+        # iterate over confusion matrix to count total, correct predictions
         for i in range(4):
             for j in range(4):
                 total_sum += confusion_matrix[i][j]
                 if i == j:
                     true_sum += confusion_matrix[i][j]
 
+        # calculates accuracy as a percentage
         accuracy = float(true_sum) / total_sum
 
+        # rounds accuracy to 5 d.p.
         return np.round(accuracy, 5)
 
 
