@@ -427,47 +427,80 @@ class DecisionTreeModel:
         return np.round(accuracy, 5)
 
 
-# Visualization and plotting methods:
+    # Visualization and plotting methods:
     def plot_decision_tree(self, node, x=0, y=0, dx=1, dy=1, depth=0):
+        """ Plot a visual representation of the decision tree structure. 
+        This method visualizes the structure of the decision tree by plotting nodes and their relationships.
+        Each node's feature and threshold values are displayed on the plot, and branching paths are drawn
+        to connect parent and child nodes. The resulting visualization is saved as 'Tree.png' if `depth` is 0.
+
+        Args:
+            node (Node): The current node in the decision tree to visualize.
+            x (float, optional): The x-coordinate of the current node's position. Defaults to 0.
+            y (float, optional): The y-coordinate of the current node's position. Defaults to 0.
+            dx (float, optional): The change in the x-coordinate for each level of the tree. Defaults to 1.
+            dy (float, optional): The change in the y-coordinate for each level of the tree. Defaults to 1.
+            depth (int, optional): The current depth level of the tree. Defaults to 0.
+        """
         if depth == 0:  
+            # create a new figure for the plot at the beginning of the tree
             plt.figure(figsize=(20, 10))
 
+        # if current node is a leaf, display label with an orange box
         if node.label is not None:
             boxprops = dict(facecolor='orange', edgecolor='black', boxstyle='round,pad=0.3')
             plt.text(x, y, f"R{node.label}", fontsize=8, ha='center', va='center', bbox=boxprops)
             return
 
+        # exit if current node haas no useful information
         if node.feature is None or node.threshold is None:
             return
 
+        # display feature and threshold for current node with light yellow box in format X0 > 36
         boxprops = dict(facecolor='lightyellow', edgecolor='black', boxstyle='round,pad=0.3')
         plt.text(x, y, f"E{node.feature} > \n{node.threshold:.2f}", fontsize=8, ha='center', va='center', bbox=boxprops)
 
-
+        # if left child, recursively plot left subtree & draw connecting line
         if node.left_child:
             self.plot_decision_tree(node.left_child, x - dx / (2**depth), y - dy, dx, dy, depth + 1)
             plt.plot([x, x - dx / (2**depth)], [y, y - dy], color='black')
         
+        # if right chilf, recursively plot right subtree & draw connecting line
         if node.right_child:
             self.plot_decision_tree(node.right_child, x + dx / (2**depth), y - dy, dx, dy, depth + 1)
             plt.plot([x, x + dx / (2**depth)], [y, y - dy], color='black')
         
+        # if depth is 0 finalise plot, save visualisation as 'Tree.png'
         if depth == 0:  
             plt.tight_layout()
             plt.savefig('Tree.png')
 
 
     def plot_confusion_matrix(self, matrix):
+        """ Plot a confusion matrix for model evaluation. This method generates
+        a graphical representation of a confusion matrix for model evaluation. 
+        The matrix is displayed as a heatmap with labeled axes for actual and
+        predicted classes. The visualisation is saved as 'Confusion_Matrix.png'
+        
+        Args:
+            matrix (numpy.ndarray): confusion matrix for visualisation
+        """
 
         title="Confusion Matrix \n"
 
+        # creates new figure, axis for plot
         fig, ax = plt.subplots()
+
+        # displays confusion matrix as heatmap with colormap
         im = ax.imshow(matrix, interpolation='nearest', cmap=plt.cm.YlOrBr)
 
+        # adds colorbar to plot
         ax.figure.colorbar(im, ax=ax)
 
+        # defines class labels for axes
         classes = ['1', '2', '3', '4']
 
+        # set labels and title for plot
         ax.set(xticks=np.arange(matrix.shape[1]),
                 yticks=np.arange(matrix.shape[0]),
                 xticklabels=classes, yticklabels=classes,
@@ -476,6 +509,7 @@ class DecisionTreeModel:
 
         ax.set_title(title, weight='bold')
 
+        # adds text labels to cells of confusion matrix
         for i in range(matrix.shape[0]):
             for j in range(matrix.shape[1]):
                 ax.text(j, i, format(matrix[i, j], 'd'),
@@ -487,6 +521,14 @@ class DecisionTreeModel:
 
 
     def plot_loss(self, entropy_values):
+        """ Plots average entropy (loss) vs depth of decision tree. Resulting plot saved
+        as 'Loss_vs_Depth.png'.
+        
+        Args: 
+            entropy_values (list): A list of tuples where each contains (depth, entropy).
+        """
+
+
         depths = []
         entropies = []
 
@@ -496,17 +538,22 @@ class DecisionTreeModel:
             
         max_depth = max(depths)
 
+        # calculate average entropies for each depth
         avg_entropies = []
         for d in range(max_depth + 1):
-
             total_entropy = 0
             count = 0
+
+            # calculate total entropy and count for current depth
             for i in range(len(depths)):
                 if depths[i] == d:
                     total_entropy += entropies[i]
                     count += 1
+
+            # calculate and store average entropy
             avg_entropies.append(total_entropy / count)
 
+        # create a plot with depth on x-axis and average entropy on y-axis
         plt.figure(figsize=(10, 6))
         plt.plot(range(max_depth + 1), avg_entropies, marker='o')
         plt.xlabel('Depth of Tree')
