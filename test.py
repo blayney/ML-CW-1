@@ -4,29 +4,13 @@ import matplotlib.pyplot as plt
 class DecisionTreeModel:
 
 # Initialization and basic utility methods:
-    def __init__(self, dataset_path, train_ratio=0.8, folds=10, depth_limit=None):
+    def __init__(self, dataset_path, folds=10, depth_limit=None):
         self.dataset_path = dataset_path
-        self.train_ratio = train_ratio
         self.folds = folds
         self.depth_limit = depth_limit
         self.full_dataset = np.loadtxt(self.dataset_path)
-        self.training_dataset, self.test_dataset = self.split_dataset(self.full_dataset, self.train_ratio)
         self.node_dictionary = {}
         self.entropy_values = []
-
-
-    def split_dataset(self, dataset, train_ratio=0.8):
-
-        np.random.seed(7000)
-    
-        np.random.shuffle(dataset)
-
-        split_idx = int(len(dataset) * train_ratio)
-
-        training_data = dataset[:split_idx]
-        test_data = dataset[split_idx:]
-
-        return training_data, test_data                               
 
 
 # Core decision tree building and prediction methods:
@@ -46,65 +30,54 @@ class DecisionTreeModel:
         best_threshold, best_feature = None, None
 
         for col in range(features.shape[1]):
-            unique_values = np.unique(features[:, col])
+            sorted_indices = np.argsort(features[:, col])
+            sorted_features, sorted_labels = features[sorted_indices, col], labels[sorted_indices]
             
-            if len(unique_values) == 1:
-                continue
-            
-            prev_value = None
-            for value in unique_values:
-                current_threshold = value if prev_value is None else (value + prev_value) / 2
-                
-                labels_below_threshold = labels[features[:, col] <= current_threshold]
-                labels_above_threshold = labels[features[:, col] > current_threshold]
+            labels_below = []
+            labels_above = sorted_labels.tolist()
 
-                p_below = len(labels_below_threshold) / len(labels)
-                p_above = len(labels_above_threshold) / len(labels)
+            for idx in range(len(sorted_features) - 1):
+                labels_below.append(sorted_labels[idx])
+                labels_above.remove(sorted_labels[idx])
 
-                weighted_entropy = (p_below * self.calculate_entropy(labels_below_threshold) +
-                                    p_above * self.calculate_entropy(labels_above_threshold))
+                if sorted_features[idx] == sorted_features[idx + 1]:
+                    continue
+
+                p_below = len(labels_below) / len(labels)
+                p_above = len(labels_above) / len(labels)
+
+                weighted_entropy = (p_below * self.calculate_entropy(np.array(labels_below)) +
+                                    p_above * self.calculate_entropy(np.array(labels_above)))
 
                 IG = total_entropy - weighted_entropy
 
                 if IG > max_IG:
                     max_IG = IG
-                    best_threshold = current_threshold
+                    best_threshold = (sorted_features[idx] + sorted_features[idx + 1]) / 2
                     best_feature = col
-
-                prev_value = value
 
         return best_feature, best_threshold
 
-
     def find_split(self, dataset):
         best_feature, threshold = self.get_best_feature_and_threshold(dataset)
-
-        sorted_indices = np.argsort(dataset[:, best_feature])
-        sorted_dataset = dataset[sorted_indices]
-
-        split_index = np.searchsorted(sorted_dataset[:, best_feature], threshold, side='right')
-        splitL, splitR = sorted_dataset[:split_index], sorted_dataset[split_index:]
-
-        return threshold, best_feature, splitL, splitR
-
+        return threshold, best_feature, dataset[dataset[:, best_feature] <= threshold], dataset[dataset[:, best_feature] > threshold]
 
     def decision_tree_learning(self, training_dataset, current_depth, depth_limit, entropy_values=[]):
         current_entropy = self.calculate_entropy(training_dataset[:, -1])
         entropy_values.append((current_depth, current_entropy))
 
+        if len(np.unique(training_dataset[:, -1])) == 1:
+            label_value = int(training_dataset[0, -1])
+            return {f'R {label_value}': [None, label_value, None, None]}, current_depth
+
         if depth_limit is not None and current_depth == depth_limit:
             most_common_label = int(np.bincount(training_dataset[:, -1].astype(int)).argmax())
             return {f'R {most_common_label}': [None, most_common_label, None, None]}, current_depth
 
-        if len(np.unique(training_dataset[:, -1])) == 1:
-            label_value = int(training_dataset[0, -1])
-            return {f'R {label_value}': [None, label_value, None, None]}, current_depth + 1
+        best_threshold, best_feature, l_dataset, r_dataset = self.find_split(training_dataset)
+        newVal = f"X{best_feature} < {best_threshold}"
 
-        best_threshold, best_emitter, l_dataset, r_dataset = self.find_split(training_dataset)
-
-        newVal = f"X{best_emitter} < {best_threshold}"
-
-        tmpTree = {newVal: [best_emitter, best_threshold, "l_branch", "r_branch"]}
+        tmpTree = {newVal: [best_feature, best_threshold, "l_branch", "r_branch"]}
 
         l_branch, l_depth = self.decision_tree_learning(l_dataset, current_depth + 1, depth_limit, entropy_values)
         r_branch, r_depth = self.decision_tree_learning(r_dataset, current_depth + 1, depth_limit, entropy_values)
@@ -116,31 +89,27 @@ class DecisionTreeModel:
         return tmpTree, max(l_depth, r_depth)
 
 
-    def predict_room_number(self, data, tree):
-
-        current_node = next(iter(tree))
-
-        while True:
-            feature, threshold, left, right = tree[current_node]
-            
-            if left is None and right is None:
-                label = threshold
-                return label
-
-            if data[feature] < threshold:
-                current_node = left
-            else:
-                current_node = right
-
 
     def run_model(self, dataset, tree):
 
-        predicted_labels = [-1] * len(dataset)
+        def get_class(data):
+            current_node = next(iter(tree))
 
-        for i in range(len(dataset)):
-            predicted_labels[i] = self.predict_room_number(dataset[i], tree)
+            while True:
+                feature, threshold, left, right = tree[current_node]
+
+                if left is None and right is None:
+                    return threshold
+
+                if data[feature] < threshold:
+                    current_node = left
+                else:
+                    current_node = right
+
+        predicted_labels = [get_class(data) for data in dataset]
 
         return np.array(predicted_labels)
+
 
 
 # Evaluation and metrics computation methods:
@@ -191,6 +160,8 @@ class DecisionTreeModel:
 
         confusion_matrix = np.zeros((4, 4))
 
+        total_accuracy_of_all_trees = 0
+
         for i in range(folds):
             test_data = dataset[i * fold_size : (i + 1) * fold_size]
             
@@ -203,14 +174,17 @@ class DecisionTreeModel:
             predicted_labels = self.run_model(test_data[:, :-1], node_dictionary)
             true_labels = test_data[:, -1]
 
+            total_accuracy_of_all_trees += self.evaluate(test_data, node_dictionary)
+
             for j in range(len(true_labels)):
                 actual = int(true_labels[j]) - 1
                 predicted = int(predicted_labels[j]) - 1
                 confusion_matrix[actual][predicted] += 1
 
         final_confusion_matrix = np.round(confusion_matrix / folds).astype(int)
+        average_accuracy = float(total_accuracy_of_all_trees) / folds
 
-        return np.array(final_confusion_matrix)
+        return np.array(final_confusion_matrix), average_accuracy
 
 
     def compute_accuracy(self, confusion_matrix):
@@ -316,17 +290,17 @@ class DecisionTreeModel:
 # Driver method:
     def run(self):
         entropy_values = []
-        tmp_dictionary, max_depth_achieved = self.decision_tree_learning(self.training_dataset, current_depth=0, depth_limit=self.depth_limit, entropy_values=entropy_values)
+        tmp_dictionary, max_depth_achieved = self.decision_tree_learning(self.full_dataset, current_depth=0, depth_limit=self.depth_limit, entropy_values=entropy_values)
         self.node_dictionary.update(tmp_dictionary)
 
         print('Model Maximum Depth: ', max_depth_achieved)
         
-        model_accuracy = self.evaluate(self.test_dataset, self.node_dictionary)
+        model_accuracy = self.evaluate(self.full_dataset, self.node_dictionary)
         print('Model Accuracy: ', model_accuracy)
 
-        confusion_matrix = self.run_cross_validation(self.full_dataset)
+        confusion_matrix, average_accuracy = self.run_cross_validation(self.full_dataset)
         algorithm_accuracy = self.compute_accuracy(confusion_matrix)
-        print('Algorithm Accuracy: ', algorithm_accuracy)
+        print('Algorithm Accuracy: ', algorithm_accuracy, ' ', average_accuracy)
 
         self.compute_metrics(confusion_matrix)
 
@@ -341,5 +315,5 @@ class DecisionTreeModel:
 # Main script execution:
 if __name__ == '__main__':
     dataset_path='wifi_db/clean_dataset.txt'
-    model = DecisionTreeModel(dataset_path, train_ratio=0.8, folds=10, depth_limit=None)
+    model = DecisionTreeModel(dataset_path, folds=10, depth_limit=None)
     model.run()
