@@ -38,7 +38,7 @@ class Node:
 class DecisionTreeModel:
     """ Class used to store the whole decision tree. """
 
-# Initialization and basic utility method:
+    # Initialization and basic utility method:
     def __init__(self, dataset_path, folds=10, depth_limit=None):
         """ Initialize an instance of DecisionTreeModel, reads in dataset and stores it in
             full_dataset.
@@ -253,8 +253,11 @@ class DecisionTreeModel:
         return np.array(predicted_labels)
 
 
-    # Evaluation and metrics computation methods:
-    def evaluate(self, test_db, trained_tree): #function not being used anywhere, but the spec said we had to implement, plz check @Jackson / @Will
+    # Evaluation, cross validation and metrics computation methods:
+    def evaluate(self, test_db, trained_tree): # This evaluate(...) function is not being called/used anymore
+                                               # as we are computing all metrics from confusion matrix now. 
+                                               # However, it is still kept here as the CourseWork Specification
+                                               # document mentioned that we shall write this function.
         """ Evaluate the accuracy of a trained decision tree on a test dataset.
 
         Args:
@@ -474,6 +477,7 @@ class DecisionTreeModel:
         if depth == 0:  
             plt.tight_layout()
             plt.savefig('Tree.png')
+            # plt.show()
 
 
     def plot_confusion_matrix(self, matrix):
@@ -518,6 +522,7 @@ class DecisionTreeModel:
                 
         fig.tight_layout()
         plt.savefig('Confusion_Matrix.png')
+        # plt.show()
 
 
     def plot_loss(self, entropy_values):
@@ -561,6 +566,7 @@ class DecisionTreeModel:
         plt.title('Loss vs. Depth of Decision Tree')
         plt.grid(True)
         plt.savefig('Loss_vs_Depth.png')
+        # plt.show()
 
 
     # Driver method:
@@ -606,7 +612,7 @@ class DecisionTreeModel:
 
 
 
-# Main script execution:
+# Main for script execution:
 if __name__ == '__main__':
     dataset_path='wifi_db/clean_dataset.txt'
     model = DecisionTreeModel(dataset_path, folds=10)
