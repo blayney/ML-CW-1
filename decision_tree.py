@@ -477,7 +477,7 @@ class DecisionTreeModel:
         if depth == 0:  
             plt.tight_layout()
             plt.savefig('Tree.png')
-            # plt.show()
+            plt.show()
 
 
     def plot_confusion_matrix(self, matrix):
@@ -614,6 +614,6 @@ class DecisionTreeModel:
 
 # Main for script execution:
 if __name__ == '__main__':
-    dataset_path='wifi_db/clean_dataset.txt'
+    dataset_path='wifi_db/noisy_dataset.txt'
     model = DecisionTreeModel(dataset_path, folds=10)
     model.run()
